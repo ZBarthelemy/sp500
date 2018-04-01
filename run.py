@@ -12,6 +12,8 @@ import requests
 import datetime as dt
 import pandas as pd
 import pandas_datareader.data as web
+import webbrowser
+import time
 
 
 #build dico index ticker value: name, industry, edgar link 
@@ -44,17 +46,28 @@ def get_data_yahoo(reloadConstituents = False):
     if not os.path.exists("/Users/whitestallion/Desktop/sp500/yahoo_prices"):
         os.makedirs("/Users/whitestallion/Desktop/sp500/yahoo_prices")
 
-    start = dt.datetime(2008,1,1)
+    start = dt.datetime(2000,1,1)
     end = dt.datetime(2018,4,1)
+    startUnix = int(start.timestamp())
+    endUnix = int(end.timestamp())
+    print (str(startUnix) + ' , ' + str(endUnix))
     
     os.chdir("/Users/whitestallion/Desktop/sp500/")
     for ticker in stocks.keys():
         print('looking at: ' + ticker)
-        if not os.path.exists("/yahoo_prices/{}.csv".format(ticker)):
-            df = web.DataReader(ticker, 'yahoo', start, end)
-            df.to_csv("/yahoo_prices/{}.csv".format(ticker))
+        if not os.path.exists("/Users/whitestallion/Desktop/sp500/yahoo_prices/{}.csv".format(ticker)):
+            if "." in ticker:
+                ticker = ticker.replace(".","-")
+            webbrowser.open('https://query1.finance.yahoo.com/v7/finance/download/' + ticker + '?period1=' + str(startUnix) + '&period2=' + str(endUnix) + '&interval=1d&events=history&crumb=wBwwzj3M11v')
+            time.sleep(1.5)
+            #handle referentials between wikipedia and yahoo, since constituents pickle will be based on wikepedia it should conform for now
+            if "-" in ticker:
+                ticker2 = ticker.replace("-",".")
+                os.rename("/Users/whitestallion/Downloads/" + ticker + '.csv', "/Users/whitestallion/Desktop/sp500/yahoo_prices/" + ticker2 + '.csv')
+            else:
+                os.rename("/Users/whitestallion/Downloads/" + ticker + '.csv', "/Users/whitestallion/Desktop/sp500/yahoo_prices/" + ticker + '.csv')
         else:
             print('Already have {}'.format(ticker))
-            
+
 get_data_yahoo()
             
