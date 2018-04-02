@@ -11,6 +11,8 @@ import datetime as dt
 import numpy as np
 import pandas as pd
 import pickle
+from sklearn import svm, model_selection as cross_validation, neighbors
+from sklearn.ensemble import VotingClassifier, RandomForestClassifier
 
 def df_withDateRange(df, date_from, date_to): 
     df['Date'] = pd.to_datetime(df['Date'])
@@ -86,5 +88,25 @@ def extract_featuresets(ticker):
     X, y = df_vals.values, df['{}_target'.format(ticker)].values
 
     return X, y, df
+
+def do_ml(ticker):
+    X, y, df = extract_featuresets(ticker)
     
-X, y , df = extract_featuresets('XOM')
+    X_train, X_test, y_train, y_test = cross_validation.train_test_split(X,
+                                                                         y,
+                                                                         test_size = 0.25)
+    
+    #clf = neighbors.KNeighborsClassifier()
+    clf = VotingClassifier([('lsvc', svm.LinearSVC()),
+                            ('knn', neighbors.KNeighborsClassifier()),
+                            ('rfor', RandomForestClassifier())])
+    
+    clf.fit(X_train, y_train)
+    confidence = clf.score(X_test, y_test)
+    print('Accuracy: ' + str(confidence))
+    predictions = clf.predict(X_test)
+    print('Predicted spread:', Counter(predictions))
+    
+    return confidence
+
+do_ml('AAPL')
