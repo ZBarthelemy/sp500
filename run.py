@@ -14,7 +14,11 @@ import pandas as pd
 import pandas_datareader.data as web
 import webbrowser
 import time
+import matplotlib.pyplot as plt
+from matplotlib import style
+import numpy as np
 
+style.use('ggplot')
 
 #build dico index ticker value: name, industry, edgar link 
 #serialize locally
@@ -38,7 +42,7 @@ def build_sp500_constituents_wikipedia():
     
     return sp500_members
     
-def get_data_yahoo(reloadConstituents = False):
+def get_data_yahoo(reloadConstituents = False, synchronizeUpToDate = False):
     if reloadConstituents:
         build_sp500_constituents_wikipedia()
     stocks = pickle.load(open("/Users/whitestallion/Desktop/sp500/data.pickle", "rb" ))
@@ -68,6 +72,58 @@ def get_data_yahoo(reloadConstituents = False):
                 os.rename("/Users/whitestallion/Downloads/" + ticker + '.csv', "/Users/whitestallion/Desktop/sp500/yahoo_prices/" + ticker + '.csv')
         else:
             print('Already have {}'.format(ticker))
-
-get_data_yahoo()
             
+def compile_data():
+    stocks = pickle.load(open("/Users/whitestallion/Desktop/sp500/data.pickle", "rb" ))
+    
+    df = pd.DataFrame()
+    
+    for count, ticker in enumerate(stocks):
+        df_i = pd.read_csv("/Users/whitestallion/Desktop/sp500/yahoo_prices/{}.csv".format(ticker))
+        df_i.set_index('Date', inplace=True)
+        df_i.rename(columns = {'Adj Close':ticker}, inplace=True)
+        df_i.drop(['Open', 'High', 'Low', 'Close', 'Volume'], 1, inplace=True)
+        
+        if df.empty:
+            df = df_i
+        else:
+            df = df.join(df_i, how='outer')
+        if count % 25 == 0:
+            print (count = ', ' + ticker)
+    print(df.head())
+    df.to_csv('/Users/whitestallion/Desktop/sp500/sp500_joined_closes.csv')
+
+def correlation_table(passDateRange = False, date_from = dt.datetime(2018,2,1), date_to = dt.datetime(2018,3,31)):
+    df = pd.read_csv('/Users/whitestallion/Desktop/sp500/sp500_joined_closes.csv')
+    #df['AAPL'].plot()
+    #plt.show()
+    
+    #get last months prices
+    if passDateRange:
+        df['Date'] = pd.to_datetime(df['Date'])
+        df = df[(df['Date']>date_from) & (df['Date']<date_to)]
+    
+    df_corr = df.corr()
+    data = df_corr.values
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    
+    heatmap = ax.pcolor(data, cmap=plt.cm.RdYlGn)
+    fig.colorbar(heatmap)
+    ax.set_xticks(np.arange(data.shape[0]) + 0.5, minor=False)
+    ax.set_yticks(np.arange(data.shape[1]) + 0.5, minor=False)
+    ax.invert_yaxis()
+    ax.xaxis.tick_top()
+    
+    column_labels = df_corr.columns
+    row_labels = df_corr.index
+
+    ax.set_xticklabels(column_labels)
+    ax.set_yticklabels(row_labels)
+    
+    plt.xticks(rotation=90)
+    heatmap.set_clim(-1,1)
+    plt.tight_layout()
+    plt.show()
+
+correlation_table()
