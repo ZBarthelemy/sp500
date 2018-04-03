@@ -89,7 +89,9 @@ def extract_featuresets(ticker):
 
     return X, y, df
 
+X, y, df = extract_featuresets('BAC')
 def do_ml(ticker):
+    print('ticker')
     X, y, df = extract_featuresets(ticker)
     
     X_train, X_test, y_train, y_test = cross_validation.train_test_split(X,
@@ -109,4 +111,4 @@ def do_ml(ticker):
     
     return confidence
 
-do_ml('AAPL')
+do_ml('BAC')
