@@ -1,0 +1,6 @@
+matplotlib
+beautifulsoup4
+requests
+pandas
+numpy
+sklearn
