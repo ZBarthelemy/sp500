@@ -28,7 +28,7 @@ class Client(object):
         }
 
     def get_index(self, name):
-        index_specs = self._index_specs = [name]
+        index_specs = self._index_specs[name]
         # noinspection PyTypeChecker
         return Index(name='S&P500',
                      constituents_url=index_specs['constituents'],
@@ -39,4 +39,5 @@ class Client(object):
 
 
 c = Client()
-c.get_index(name='sp500')
+spx: Index = c.get_index(name='sp500')
+print('done')
