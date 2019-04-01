@@ -1,5 +1,6 @@
 from typing import List
 from composition.constituent import Stock
+# noinspection PyPackageRequirements
 from functional import pseq
 import requests
 import bs4
@@ -56,6 +57,6 @@ class Index:
     def get_constituent_prices_and_free_float(self):
         #  https://www.investing.com/indices/investing.com-us-500-components would be cleaner
         #  but this is more about getting constituents and url above does not have them all.
-        (pseq(self.components, processes=4, partition_size=130)
-         .map(lambda stock: stock.get_price_and_float())
-         .to_list())
+        self.components = (pseq(self.components, processes=4, partition_size=130)
+                           .map(lambda stock: stock.get_price_and_float())
+                           .to_list())
