@@ -1,6 +1,9 @@
+from functional import seq
+
 from composition.index import Index
 from http import cookiejar
 import requests
+import pandas
 
 
 class CookieBlockAll(cookiejar.CookiePolicy):
@@ -40,4 +43,10 @@ class Client(object):
 
 c = Client()
 spx: Index = c.get_index(name='sp500')
+current_components = spx.components
+json = (seq(current_components)
+        .map(lambda s: s.to_dict())
+        .to_list())
+df = pandas.DataFrame(json)[["name", "free_float", "last_price", "edgar_url"]]
+df.to_csv(r"/Users/whitestallion/Desktop/sp500shit.csv")
 print('done')
