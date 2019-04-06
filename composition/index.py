@@ -1,12 +1,16 @@
 from typing import List
 from composition.constituent import Stock
-# noinspection PyPackageRequirements
-from functional import pseq
+from functional import pseq, seq
 import requests
 import bs4
 
 
 class Index:
+
+    _spx_constituent_to_remove = ["Alphabet Inc Class A",
+                                  "News Corp. Class A",
+                                  "Twenty-First Century Fox Class B"]
+
     def __init__(self,
                  name,
                  constituents_url: str,
@@ -21,8 +25,9 @@ class Index:
         self.free_float_url = free_float_url
         self.divisor = divisor
         self.multiplier = multiplier
+        self.price = None
         self.init_constituents()
-        self.price = self.calculate_index()
+        self.filter_dual_and_set_weights()
 
     def __hash__(self):
         return hash(self.name)
@@ -31,9 +36,14 @@ class Index:
         self.get_constituents()
         self.get_constituent_prices_and_free_float()
 
-    @staticmethod
-    def calculate_index():
-        return False
+    def filter_dual_and_set_weights(self):
+        index_free_float_mkt_cap = 0.0
+        self.components = list(filter(lambda s: s.name not in self._spx_constituent_to_remove, self.components))
+        for instrument in self.components:
+            index_free_float_mkt_cap += instrument.last_price * instrument.free_float
+        for stock in self.components:
+            stock.set_weight(index_free_float_mkt_cap)
+        self.price = index_free_float_mkt_cap / self.divisor * self.multiplier
 
     def get_constituents(self):
         r = self._client.get(self.constituents_url)
@@ -47,16 +57,14 @@ class Index:
             ticker = str.replace(columns[1].text, '.', '-')
             edgar_url = columns[2].next_element.get('href')
             self.components.append(
-                Stock(
-                    url=self.free_float_url.format(ticker),
-                    edgar_url=edgar_url,
-                    name=name
+                Stock(url=self.free_float_url.format(ticker),
+                      edgar_url=edgar_url,
+                      name=name,
+                      ticker=ticker.replace('-', '')
                 )
             )
 
     def get_constituent_prices_and_free_float(self):
-        #  https://www.investing.com/indices/investing.com-us-500-components would be cleaner
-        #  but this is more about getting constituents and url above does not have them all.
         self.components = (pseq(self.components, processes=4, partition_size=130)
                            .map(lambda stock: stock.get_price_and_float())
                            .to_list())
