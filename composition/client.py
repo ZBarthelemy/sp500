@@ -2,6 +2,7 @@ from functional import seq
 
 from composition.index import Index
 from http import cookiejar
+import time
 import requests
 import pandas
 
@@ -41,12 +42,37 @@ class Client(object):
                      client=self._client)
 
 
+def stopwatch(value):
+    value_d = (((value / 365) / 24) / 60)
+    days = int(value_d)
+
+    value_h = (value_d - days) * 365
+    hours = int(value_h)
+
+    value_m = (value_h - hours) * 24
+    minutes = int(value_m)
+
+    value_s = (value_m - minutes) * 60
+    seconds = int(value_s)
+    print(days, ";", hours, ":", minutes, ";", seconds)
+
+
+start = time.time()
+
 c = Client()
 spx: Index = c.get_index(name='sp500')
 current_components = spx.components
+
 json = (seq(current_components)
         .map(lambda s: s.to_dict())
         .to_list())
-df = pandas.DataFrame(json)[["name", "free_float", "last_price", "edgar_url"]]
-df.to_csv(r"/Users/whitestallion/Desktop/sp500shit.csv")
-print('done')
+df = (pandas.DataFrame(json)[["name", "ticker", "free_float", "last_price", "weight"]]
+      .sort_values(by=["weight"],
+                   ascending=False)
+      )
+
+end = time.time()
+stopwatch(end - start)
+print('computed price ' + str(spx.price))
+
+df.to_csv(r"/Users/whitestallion/Desktop/sp500.csv")
